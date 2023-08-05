@@ -1,5 +1,6 @@
 import streamlit as st
 from PIL import Image, ImageFilter, ImageEnhance
+from io import BytesIO
 
 from app.styles.spiral_touch import transform_image
 
@@ -22,21 +23,27 @@ def init_app() -> None:
         st.sidebar.header("Editing panel")
 
         # writting settings code
-        st.sidebar.write("Settings")
+        st.sidebar.write("Preprocessing settings")
         setting_sharp = st.sidebar.slider("Sharpness")
         setting_color = st.sidebar.slider("Color")
         setting_brightness = st.sidebar.slider("Brightness")
         setting_contrast = st.sidebar.slider("Contrast")
+        setting_inverse_color = st.sidebar.checkbox("Inverse color")
+        setting_blur = st.sidebar.checkbox("Blur")
         setting_flip_image = st.sidebar.selectbox("Flip Image", options=(
-            "select flip direction", "Vertical flip", "Horizontal flip"))
+            "select flip direction", "Vertical flip", "Horizontal flip")
+        )
+
 
         # writing filters code
-        st.sidebar.write("Filters")
-        filter_black_and_white = st.sidebar.checkbox("Black and white")
-        filter_blur = st.sidebar.checkbox("Blur")
+        st.sidebar.write("Style settings")
+        style_spiral_step = st.sidebar.slider("Spiral step", 2.0, 10.)
+        style_spiral_color = st.sidebar.color_picker("Spiral color", "#65BFFC")
+        style_topleft_color = st.sidebar.color_picker("Background top-left color", "#64130A")
+        style_bottomright_color = st.sidebar.color_picker("Background bottom-right color", "#051646")
 
-        if filter_blur:
-            filter_blur_strength = st.sidebar.slider("Select Blur strength")
+        if setting_blur:
+            setting_blur_strength = st.sidebar.slider("Select Blur strength")
 
         # checking setting_sharp value
         if setting_sharp:
@@ -89,19 +96,33 @@ def init_app() -> None:
         else:
             pass
 
-        # implementing filters
-        if filter_black_and_white:
-            edited_img = edited_img.convert(mode='L')
 
-        if filter_blur:
-            if filter_blur_strength:
-                set_blur = filter_blur_strength
+        if setting_blur:
+            if setting_blur_strength:
+                set_blur = setting_blur_strength
                 edited_img = edited_img.filter(ImageFilter.GaussianBlur(set_blur))
 
         # displaying edited image
         st.image(edited_img, width=400)
         st.write("\nFinal result:")
 
-        spiral_img = transform_image(file=edited_img)
+        spiral_img = transform_image(
+            file=edited_img,
+            alpha=style_spiral_step,
+            inverse_flag=setting_inverse_color,
+            spiral_color=style_spiral_color,
+            background_color1=style_topleft_color,
+            background_color2=style_bottomright_color,
+        )
         st.image(spiral_img, width=800)
-        st.write(">To download edited image right click and `click save image as`.")
+
+        img_bytes = BytesIO()
+        spiral_img.seek(0)
+        spiral_img.save(img_bytes, format="PNG")
+        img_bytes.seek(0)
+        btn = st.download_button(
+                label="Download image",
+                data=img_bytes,
+                file_name="flower.png",
+                mime="image/png")
+            
