@@ -1,4 +1,4 @@
-from app.page import init_app
+from app.pages.main_page import init_app
 
 
 if __name__ == "__main__":

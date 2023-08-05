@@ -17,7 +17,7 @@ def init_app() -> None:
     # if image uploaded
     if image:
         # getting image in PIL
-        img = Image.open(image)
+        img = Image.open(image).convert(mode="RGB")
 
         #adding sidebar
         st.sidebar.header("Editing panel")
@@ -30,20 +30,35 @@ def init_app() -> None:
         setting_contrast = st.sidebar.slider("Contrast")
         setting_inverse_color = st.sidebar.checkbox("Inverse color")
         setting_blur = st.sidebar.checkbox("Blur")
-        setting_flip_image = st.sidebar.selectbox("Flip Image", options=(
-            "select flip direction", "Vertical flip", "Horizontal flip")
+
+        if setting_blur:
+            setting_blur_strength = st.sidebar.slider("Select Blur strength")
+
+        setting_flip_image = st.sidebar.selectbox(
+            "Flip Image",
+            options=(
+                "select flip direction",
+                "Vertical flip",
+                "Horizontal flip",
+            )
         )
 
-
         # writing filters code
+        style_selection = st.sidebar.selectbox(
+            "Choose style",
+            options=(
+                "Spiral touch",
+                "Spiral wave",
+            )
+        )
         st.sidebar.write("Style settings")
         style_spiral_step = st.sidebar.slider("Spiral step", 2.0, 10.)
+        if style_selection == "Spiral wave":
+            style_sin_frequency = st.sidebar.slider("Wave frequency", 0, 50)
         style_spiral_color = st.sidebar.color_picker("Spiral color", "#65BFFC")
         style_topleft_color = st.sidebar.color_picker("Background top-left color", "#64130A")
         style_bottomright_color = st.sidebar.color_picker("Background bottom-right color", "#051646")
 
-        if setting_blur:
-            setting_blur_strength = st.sidebar.slider("Select Blur strength")
 
         # checking setting_sharp value
         if setting_sharp:
@@ -106,23 +121,31 @@ def init_app() -> None:
         st.image(edited_img, width=400)
         st.write("\nFinal result:")
 
-        spiral_img = transform_image(
-            file=edited_img,
-            alpha=style_spiral_step,
-            inverse_flag=setting_inverse_color,
-            spiral_color=style_spiral_color,
-            background_color1=style_topleft_color,
-            background_color2=style_bottomright_color,
-        )
-        st.image(spiral_img, width=800)
+        # implementing flip direction
+        if style_selection == "Spiral touch":
+            stylized_img = transform_image(
+                file=edited_img,
+                alpha=style_spiral_step,
+                inverse_flag=setting_inverse_color,
+                spiral_color=style_spiral_color,
+                background_color1=style_topleft_color,
+                background_color2=style_bottomright_color,
+            )
+        elif style_selection == "Spiral wave":
+            stylized_img = edited_img
+        else:
+            pass
+
+        
+        st.image(stylized_img, width=800)
 
         img_bytes = BytesIO()
-        spiral_img.seek(0)
-        spiral_img.save(img_bytes, format="PNG")
+        stylized_img.seek(0)
+        stylized_img.save(img_bytes, format="PNG")
         img_bytes.seek(0)
         btn = st.download_button(
                 label="Download image",
                 data=img_bytes,
-                file_name="flower.png",
+                file_name=f"stylized_{image.name}",
                 mime="image/png")
             
