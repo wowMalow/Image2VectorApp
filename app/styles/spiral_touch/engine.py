@@ -21,7 +21,7 @@ def set_background(color1: tuple, color2: tuple, context):
     context.fill()
 
 
-def get_spiral(alpha: float, normalize):
+def get_spiral(alpha: float, normalize: int):
     arc = 4
     phi = 0
     points = []

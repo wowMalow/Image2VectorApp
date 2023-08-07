@@ -1,8 +1,10 @@
 import streamlit as st
+import numpy as np
 from PIL import Image, ImageFilter, ImageEnhance
 from io import BytesIO
 
-from app.styles.spiral_touch import transform_image
+from app.styles import Canvas, WavePath, WidthPath
+from app.styles.utils import hex_to_rgb
 
 
 def init_app() -> None:
@@ -52,12 +54,18 @@ def init_app() -> None:
             )
         )
         st.sidebar.write("Style settings")
-        style_spiral_step = st.sidebar.slider("Spiral step", 2.0, 10.)
+        style_spiral_step = st.sidebar.slider("Spiral step", 2., 20.)
+        style_spiral_step /= 1000
         if style_selection == "Spiral wave":
-            style_sin_frequency = st.sidebar.slider("Wave frequency", 0, 50)
+            style_wave_width = st.sidebar.slider("Wave width", 1., 4.)
+            style_wave_width /= 1000
         style_spiral_color = st.sidebar.color_picker("Spiral color", "#65BFFC")
         style_topleft_color = st.sidebar.color_picker("Background top-left color", "#64130A")
         style_bottomright_color = st.sidebar.color_picker("Background bottom-right color", "#051646")
+
+        style_spiral_color = hex_to_rgb(style_spiral_color)
+        style_topleft_color = hex_to_rgb(style_topleft_color)
+        style_bottomright_color = hex_to_rgb(style_bottomright_color)
 
 
         # checking setting_sharp value
@@ -121,22 +129,27 @@ def init_app() -> None:
         st.image(edited_img, width=400)
         st.write("\nFinal result:")
 
-        # implementing flip direction
+        edited_img = np.array(edited_img)
+
+        # Select style
+        canvas = Canvas(width=2000, height=2000)
+        canvas.set_gradient_background(
+            color1=style_topleft_color,
+            color2=style_bottomright_color,
+        )
         if style_selection == "Spiral touch":
-            stylized_img = transform_image(
-                file=edited_img,
-                alpha=style_spiral_step,
-                inverse_flag=setting_inverse_color,
-                spiral_color=style_spiral_color,
-                background_color1=style_topleft_color,
-                background_color2=style_bottomright_color,
-            )
+            style_width = WidthPath(step=style_spiral_step)
+            points = style_width.transform_image(edited_img)
+            canvas.poligon(points=points, color=style_spiral_color)
         elif style_selection == "Spiral wave":
-            stylized_img = edited_img
+            style_wave = WavePath(step=style_spiral_step)
+            points = style_wave.transform_image(edited_img)
+            canvas.path(points=points, width=style_wave_width , color=style_spiral_color)
         else:
             pass
 
-        
+        stylized_img = canvas.to_pillow()
+
         st.image(stylized_img, width=800)
 
         img_bytes = BytesIO()
